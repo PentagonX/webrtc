@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Remote Desktop</title>
+</head>
+<body>
+  <h2>Remote Desktop</h2>
+  <video id="video" autoplay playsinline style="width:100%;max-width:900px;"></video>
+
+  <script>
+    const ws = new WebSocket(`wss://${location.host}/ws/viewer`);
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    });
+
+    const video = document.getElementById("video");
+
+    pc.ontrack = e => video.srcObject = e.streams[0];
+
+    ws.onmessage = async e => {
+      const msg = JSON.parse(e.data);
+
+      if (msg.sdp) {
+        await pc.setRemoteDescription(msg);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        ws.send(JSON.stringify(pc.localDescription));
+      }
+
+      if (msg.candidate) {
+        await pc.addIceCandidate(msg.candidate);
+      }
+    };
+
+    pc.onicecandidate = e => {
+      if (e.candidate) {
+        ws.send(JSON.stringify({ candidate: e.candidate }));
+      }
+    };
+  </script>
+</body>
+</html>
