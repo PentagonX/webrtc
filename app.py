@@ -16,8 +16,13 @@ async def index():
     with open("static/index.html", "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
-@app.websocket("/ws/{role}")
-async def websocket_endpoint(ws: WebSocket, role: str):
+@app.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    role = ws.query_params.get("role")
+    if role not in ("viewer", "streamer"):
+        await ws.close()
+        return
+
     await ws.accept()
     clients[role] = ws
     print(f"{role} connected")
@@ -25,7 +30,6 @@ async def websocket_endpoint(ws: WebSocket, role: str):
     try:
         while True:
             msg = await ws.receive_text()
-
             target = "viewer" if role == "streamer" else "streamer"
             if clients.get(target):
                 await clients[target].send_text(msg)
