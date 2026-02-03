@@ -26,6 +26,9 @@
         await pc.setLocalDescription(answer);
         ws.send(JSON.stringify(pc.localDescription));
       }
+      if (msg.type && msg.sdp) {
+  await pc.setRemoteDescription(msg);
+}
 
       if (msg.candidate) {
         await pc.addIceCandidate(msg.candidate);
